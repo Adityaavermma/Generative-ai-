@@ -1,0 +1,15 @@
+# Install PyTorch with CUDA first (RTX 30xx/40xx):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch>=2.4
+torchvision>=0.19
+timm>=1.0
+opencv-python-headless
+PyWavelets
+scikit-image
+scikit-learn
+scipy
+pandas>=2.2
+matplotlib
+tqdm
+streamlit>=1.67   # tested with 1.67 (light/dark theme sections, horizontal containers)
+altair>=5
