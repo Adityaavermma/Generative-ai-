@@ -1,0 +1,11 @@
+{
+  "name": "ensemble_L4_L2",
+  "members": [
+    "final_L4",
+    "final_L2"
+  ],
+  "level": "L4+L2",
+  "arch": "convnextv2_tiny.fcmae_ft_in22k_in1k_384",
+  "img_size": 384,
+  "seg_weight": 1.0
+}

@@ -1,0 +1,4 @@
+# dataset + enhanced image cache (re-created by prepare_data.py)
+data/
+# model weights (re-created by train.py); metrics/plots are kept
+runs/*/*.pt

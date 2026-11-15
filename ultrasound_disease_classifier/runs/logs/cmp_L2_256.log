@@ -1,0 +1,169 @@
+Run 'cmp_L2_256': level L2, 762 images, folds [0, 1, 2, 3, 4], device cuda
+fold 0 | epoch  1/30 | loss 1.1270 | 27.4s
+fold 0 | epoch  2/30 | loss 1.1223 | 2.8s
+fold 0 | epoch  3/30 | loss 1.0192 | 2.7s
+fold 0 | epoch  4/30 | loss 0.8534 | 2.8s
+fold 0 | epoch  5/30 | loss 0.7315 | fold acc 0.767 | 12.8s
+fold 0 | epoch  6/30 | loss 0.7088 | 2.8s
+fold 0 | epoch  7/30 | loss 0.6626 | 2.7s
+fold 0 | epoch  8/30 | loss 0.6034 | 2.7s
+fold 0 | epoch  9/30 | loss 0.5361 | 2.7s
+fold 0 | epoch 10/30 | loss 0.5089 | fold acc 0.767 | 3.2s
+fold 0 | epoch 11/30 | loss 0.4941 | 2.7s
+fold 0 | epoch 12/30 | loss 0.5004 | 2.8s
+fold 0 | epoch 13/30 | loss 0.4829 | 2.7s
+fold 0 | epoch 14/30 | loss 0.4389 | 2.8s
+fold 0 | epoch 15/30 | loss 0.4452 | fold acc 0.799 | 3.3s
+fold 0 | epoch 16/30 | loss 0.4337 | 2.8s
+fold 0 | epoch 17/30 | loss 0.4137 | 2.9s
+fold 0 | epoch 18/30 | loss 0.3783 | 2.9s
+fold 0 | epoch 19/30 | loss 0.3795 | 3.0s
+fold 0 | epoch 20/30 | loss 0.3861 | fold acc 0.830 | 3.4s
+fold 0 | epoch 21/30 | loss 0.3841 | 3.0s
+fold 0 | epoch 22/30 | loss 0.3759 | 3.0s
+fold 0 | epoch 23/30 | loss 0.3594 | 3.1s
+fold 0 | epoch 24/30 | loss 0.3572 | 3.1s
+fold 0 | epoch 25/30 | loss 0.3838 | fold acc 0.855 | 3.6s
+fold 0 | epoch 26/30 | loss 0.3603 | 3.1s
+fold 0 | epoch 27/30 | loss 0.3605 | 3.1s
+fold 0 | epoch 28/30 | loss 0.3596 | 3.2s
+fold 0 | epoch 29/30 | loss 0.3684 | 3.1s
+fold 0 | epoch 30/30 | loss 0.3648 | fold acc 0.849 | 3.8s
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+fold 0 accuracy: 0.8491
+fold 1 | epoch  1/30 | loss 1.1436 | 3.3s
+fold 1 | epoch  2/30 | loss 1.0284 | 3.3s
+fold 1 | epoch  3/30 | loss 0.9521 | 3.3s
+fold 1 | epoch  4/30 | loss 0.8211 | 3.5s
+fold 1 | epoch  5/30 | loss 0.7537 | fold acc 0.833 | 15.2s
+fold 1 | epoch  6/30 | loss 0.6686 | 3.0s
+fold 1 | epoch  7/30 | loss 0.6315 | 3.1s
+fold 1 | epoch  8/30 | loss 0.6048 | 3.3s
+fold 1 | epoch  9/30 | loss 0.5161 | 3.2s
+fold 1 | epoch 10/30 | loss 0.5103 | fold acc 0.833 | 3.7s
+fold 1 | epoch 11/30 | loss 0.4704 | 3.3s
+fold 1 | epoch 12/30 | loss 0.4762 | 3.4s
+fold 1 | epoch 13/30 | loss 0.4450 | 3.4s
+fold 1 | epoch 14/30 | loss 0.4630 | 3.4s
+fold 1 | epoch 15/30 | loss 0.4126 | fold acc 0.853 | 4.0s
+fold 1 | epoch 16/30 | loss 0.4158 | 3.4s
+fold 1 | epoch 17/30 | loss 0.4160 | 3.4s
+fold 1 | epoch 18/30 | loss 0.3970 | 3.4s
+fold 1 | epoch 19/30 | loss 0.3858 | 3.4s
+fold 1 | epoch 20/30 | loss 0.3828 | fold acc 0.893 | 3.9s
+fold 1 | epoch 21/30 | loss 0.3888 | 3.4s
+fold 1 | epoch 22/30 | loss 0.3736 | 3.5s
+fold 1 | epoch 23/30 | loss 0.3568 | 3.6s
+fold 1 | epoch 24/30 | loss 0.3624 | 3.5s
+fold 1 | epoch 25/30 | loss 0.3588 | fold acc 0.887 | 4.1s
+fold 1 | epoch 26/30 | loss 0.3707 | 3.6s
+fold 1 | epoch 27/30 | loss 0.3686 | 3.6s
+fold 1 | epoch 28/30 | loss 0.3565 | 3.5s
+fold 1 | epoch 29/30 | loss 0.3666 | 3.5s
+fold 1 | epoch 30/30 | loss 0.3484 | fold acc 0.887 | 4.1s
+fold 1 accuracy: 0.8867
+fold 2 | epoch  1/30 | loss 1.1372 | 3.3s
+fold 2 | epoch  2/30 | loss 1.0579 | 3.4s
+fold 2 | epoch  3/30 | loss 0.9727 | 3.6s
+fold 2 | epoch  4/30 | loss 0.8788 | 3.6s
+fold 2 | epoch  5/30 | loss 0.8298 | fold acc 0.865 | 13.7s
+fold 2 | epoch  6/30 | loss 0.7037 | 3.0s
+fold 2 | epoch  7/30 | loss 0.6677 | 3.2s
+fold 2 | epoch  8/30 | loss 0.6068 | 3.1s
+fold 2 | epoch  9/30 | loss 0.5735 | 3.2s
+fold 2 | epoch 10/30 | loss 0.5366 | fold acc 0.912 | 3.7s
+fold 2 | epoch 11/30 | loss 0.5025 | 3.2s
+fold 2 | epoch 12/30 | loss 0.4938 | 3.2s
+fold 2 | epoch 13/30 | loss 0.4728 | 3.4s
+fold 2 | epoch 14/30 | loss 0.4840 | 3.3s
+fold 2 | epoch 15/30 | loss 0.4374 | fold acc 0.899 | 3.9s
+fold 2 | epoch 16/30 | loss 0.4157 | 3.4s
+fold 2 | epoch 17/30 | loss 0.4315 | 3.4s
+fold 2 | epoch 18/30 | loss 0.4169 | 3.4s
+fold 2 | epoch 19/30 | loss 0.4018 | 3.4s
+fold 2 | epoch 20/30 | loss 0.3919 | fold acc 0.905 | 3.9s
+fold 2 | epoch 21/30 | loss 0.3837 | 3.4s
+fold 2 | epoch 22/30 | loss 0.3863 | 3.4s
+fold 2 | epoch 23/30 | loss 0.3729 | 3.4s
+fold 2 | epoch 24/30 | loss 0.3653 | 3.4s
+fold 2 | epoch 25/30 | loss 0.3628 | fold acc 0.912 | 3.9s
+fold 2 | epoch 26/30 | loss 0.3709 | 3.4s
+fold 2 | epoch 27/30 | loss 0.3673 | 3.5s
+fold 2 | epoch 28/30 | loss 0.3604 | 3.5s
+fold 2 | epoch 29/30 | loss 0.3611 | 3.5s
+fold 2 | epoch 30/30 | loss 0.3558 | fold acc 0.912 | 4.0s
+fold 2 accuracy: 0.9122
+fold 3 | epoch  1/30 | loss 1.1385 | 3.6s
+fold 3 | epoch  2/30 | loss 1.0955 | 3.5s
+fold 3 | epoch  3/30 | loss 1.0022 | 3.5s
+fold 3 | epoch  4/30 | loss 0.9820 | 3.5s
+fold 3 | epoch  5/30 | loss 0.7941 | fold acc 0.824 | 13.8s
+fold 3 | epoch  6/30 | loss 0.6886 | 2.9s
+fold 3 | epoch  7/30 | loss 0.7241 | 3.0s
+fold 3 | epoch  8/30 | loss 0.6214 | 3.1s
+fold 3 | epoch  9/30 | loss 0.5406 | 3.1s
+fold 3 | epoch 10/30 | loss 0.5368 | fold acc 0.791 | 3.8s
+fold 3 | epoch 11/30 | loss 0.5293 | 3.2s
+fold 3 | epoch 12/30 | loss 0.4715 | 3.2s
+fold 3 | epoch 13/30 | loss 0.4646 | 3.2s
+fold 3 | epoch 14/30 | loss 0.4824 | 3.2s
+fold 3 | epoch 15/30 | loss 0.4178 | fold acc 0.837 | 3.8s
+fold 3 | epoch 16/30 | loss 0.4221 | 3.2s
+fold 3 | epoch 17/30 | loss 0.4143 | 3.4s
+fold 3 | epoch 18/30 | loss 0.4127 | 3.5s
+fold 3 | epoch 19/30 | loss 0.4217 | 3.4s
+fold 3 | epoch 20/30 | loss 0.3821 | fold acc 0.843 | 4.1s
+fold 3 | epoch 21/30 | loss 0.3840 | 3.3s
+fold 3 | epoch 22/30 | loss 0.3733 | 3.4s
+fold 3 | epoch 23/30 | loss 0.3667 | 3.4s
+fold 3 | epoch 24/30 | loss 0.3645 | 3.4s
+fold 3 | epoch 25/30 | loss 0.3719 | fold acc 0.869 | 3.9s
+fold 3 | epoch 26/30 | loss 0.3631 | 3.4s
+fold 3 | epoch 27/30 | loss 0.3644 | 3.4s
+fold 3 | epoch 28/30 | loss 0.3616 | 3.4s
+fold 3 | epoch 29/30 | loss 0.3533 | 3.4s
+fold 3 | epoch 30/30 | loss 0.3527 | fold acc 0.876 | 4.1s
+fold 3 accuracy: 0.8758
+fold 4 | epoch  1/30 | loss 1.1182 | 3.5s
+fold 4 | epoch  2/30 | loss 1.0558 | 3.4s
+fold 4 | epoch  3/30 | loss 1.0001 | 3.4s
+fold 4 | epoch  4/30 | loss 0.8643 | 3.4s
+fold 4 | epoch  5/30 | loss 0.7630 | fold acc 0.855 | 13.3s
+fold 4 | epoch  6/30 | loss 0.7065 | 2.9s
+fold 4 | epoch  7/30 | loss 0.6569 | 3.1s
+fold 4 | epoch  8/30 | loss 0.5685 | 3.1s
+fold 4 | epoch  9/30 | loss 0.5762 | 3.2s
+fold 4 | epoch 10/30 | loss 0.5514 | fold acc 0.875 | 3.7s
+fold 4 | epoch 11/30 | loss 0.5053 | 3.3s
+fold 4 | epoch 12/30 | loss 0.4691 | 3.3s
+fold 4 | epoch 13/30 | loss 0.4665 | 3.4s
+fold 4 | epoch 14/30 | loss 0.4360 | 3.4s
+fold 4 | epoch 15/30 | loss 0.4504 | fold acc 0.868 | 3.9s
+fold 4 | epoch 16/30 | loss 0.4431 | 3.4s
+fold 4 | epoch 17/30 | loss 0.4366 | 3.4s
+fold 4 | epoch 18/30 | loss 0.3920 | 3.5s
+fold 4 | epoch 19/30 | loss 0.4156 | 3.3s
+fold 4 | epoch 20/30 | loss 0.3970 | fold acc 0.914 | 3.9s
+fold 4 | epoch 21/30 | loss 0.3789 | 3.4s
+fold 4 | epoch 22/30 | loss 0.3723 | 3.4s
+fold 4 | epoch 23/30 | loss 0.3656 | 3.4s
+fold 4 | epoch 24/30 | loss 0.3569 | 3.4s
+fold 4 | epoch 25/30 | loss 0.3603 | fold acc 0.908 | 3.9s
+fold 4 | epoch 26/30 | loss 0.3790 | 3.4s
+fold 4 | epoch 27/30 | loss 0.3496 | 3.5s
+fold 4 | epoch 28/30 | loss 0.3664 | 3.6s
+fold 4 | epoch 29/30 | loss 0.3625 | 3.6s
+fold 4 | epoch 30/30 | loss 0.3656 | fold acc 0.901 | 4.1s
+fold 4 accuracy: 0.9013
+
+================ OUT-OF-FOLD RESULTS ================
+accuracy           0.8845  (per fold 0.8850 +/- 0.0244)
+balanced accuracy  0.8614
+macro F1           0.8688
+macro AUC (OvR)    0.9425
+malignant sens/spec 0.8922 / 0.9373  AUC 0.9595
+confusion matrix (rows=true, cols=pred): ['benign', 'malignant', 'normal']
+[[390  28   9]
+ [ 19 182   3]
+ [ 22   7 102]]
+saved to C:\Users\hp\OneDrive\Desktop\ML\gen ai\ultrasound_disease_classifier\runs\cmp_L2_256
