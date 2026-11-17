@@ -73,7 +73,7 @@ class Analysis:
 
 class Predictor:
     def __init__(self, runs=None, device=None):
-        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() and torch.cuda.device_count() > 0 else "cpu"))
         self.run_dirs = [Path(r) for r in (runs or DEFAULT_RUNS)]
         self.runs = []                       # [(models, cfg)]
         for run_dir in self.run_dirs:

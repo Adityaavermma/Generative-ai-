@@ -97,9 +97,27 @@ def _enhance_one(job):
     return dst, info
 
 
+def _view_one(job):
+    """Extra single-filter views (not produced by the agents), e.g. NLM."""
+    src, dst, view = job
+    if os.path.exists(dst):
+        return dst
+    from us_pipeline import load_tools
+    PT, _ = load_tools()
+    img = cv2.imread(src, cv2.IMREAD_GRAYSCALE)
+    if view == "nlm":   # same settings as the method benchmark
+        out = PT.non_local_means(img, h=10, template_window=7, search_window=21)
+    else:
+        raise ValueError(view)
+    cv2.imwrite(dst, to_cache_size(out))
+    return dst
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--levels", type=int, nargs="+", default=[0, 2, 4])
+    ap.add_argument("--views", nargs="*", default=[], choices=["nlm"],
+                    help="extra single-filter views, e.g. nlm (non-local means on the raw scan)")
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -174,6 +192,18 @@ def main():
         if strategies:
             print(f"L{level} strategies used:", pd.Series(strategies).value_counts().to_dict())
 
+    # ---- 6. extra single-filter views --------------------------------------
+    for view in args.views:
+        name = view.upper()
+        jobs = []
+        for r in df.itertuples():
+            dst = PROC_DIR / name / r.label / f"{Path(r.raw_path).stem}.png"
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            jobs.append((r.raw_path, str(dst), view))
+        with ProcessPoolExecutor(max_workers=args.workers) as ex:
+            list(tqdm(ex.map(_view_one, jobs, chunksize=4), total=len(jobs), desc=f"View {name}"))
+        df[f"{name}_path"] = [j[1] for j in jobs]
+
     df.to_csv(INDEX_CSV, index=False)
     with open(ROOT / "data" / "dataset_summary.json", "w") as f:
         json.dump({
@@ -183,6 +213,7 @@ def main():
             "used_images": len(df),
             "class_counts": df.label.value_counts().to_dict(),
             "levels": args.levels,
+            "views": args.views,
             "cache_size": CACHE_SIZE,
         }, f, indent=2)
     print(f"Wrote {INDEX_CSV}")

@@ -20,6 +20,7 @@ secondaryBackgroundColor = "#f3f2ef"
 textColor = "#0b0b0b"
 borderColor = "#e4e3df"
 linkColor = "#256abf"
+chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 
 [theme.dark]
 primaryColor = "#3987e5"
@@ -28,3 +29,4 @@ secondaryBackgroundColor = "#252523"
 textColor = "#f0efec"
 borderColor = "#383835"
 linkColor = "#6da7ec"
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"]

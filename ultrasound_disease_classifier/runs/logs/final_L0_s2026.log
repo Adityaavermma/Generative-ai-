@@ -1,0 +1,171 @@
+Run 'final_L0_s2026': level L0, 762 images, folds [0, 1, 2, 3, 4], device cuda
+C:\Users\hp\OneDrive\Desktop\ML\gen ai\ultrasound_disease_classifier\train.py:89: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\utils\tensor_numpy.cpp:219.)
+  y_dev = torch.as_tensor(y, device=device)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+fold 0 | epoch  1/30 | loss 2.1260 | 30.6s
+fold 0 | epoch  2/30 | loss 1.6448 | 11.5s
+fold 0 | epoch  3/30 | loss 1.5831 | 11.5s
+fold 0 | epoch  4/30 | loss 1.3674 | 11.6s
+fold 0 | epoch  5/30 | loss 1.2963 | fold acc 0.792 | 26.8s
+fold 0 | epoch  6/30 | loss 1.2603 | 11.5s
+fold 0 | epoch  7/30 | loss 1.1244 | 11.5s
+fold 0 | epoch  8/30 | loss 1.0138 | 11.6s
+fold 0 | epoch  9/30 | loss 0.9702 | 11.6s
+fold 0 | epoch 10/30 | loss 0.9456 | fold acc 0.818 | 13.2s
+fold 0 | epoch 11/30 | loss 0.8832 | 11.6s
+fold 0 | epoch 12/30 | loss 0.8199 | 11.5s
+fold 0 | epoch 13/30 | loss 0.8130 | 11.7s
+fold 0 | epoch 14/30 | loss 0.8020 | 11.7s
+fold 0 | epoch 15/30 | loss 0.7848 | fold acc 0.830 | 14.2s
+fold 0 | epoch 16/30 | loss 0.7322 | 12.6s
+fold 0 | epoch 17/30 | loss 0.7266 | 12.4s
+fold 0 | epoch 18/30 | loss 0.6654 | 12.4s
+fold 0 | epoch 19/30 | loss 0.6748 | 12.4s
+fold 0 | epoch 20/30 | loss 0.6711 | fold acc 0.843 | 14.2s
+fold 0 | epoch 21/30 | loss 0.6487 | 12.4s
+fold 0 | epoch 22/30 | loss 0.6490 | 12.5s
+fold 0 | epoch 23/30 | loss 0.6266 | 12.5s
+fold 0 | epoch 24/30 | loss 0.6281 | 12.5s
+fold 0 | epoch 25/30 | loss 0.6208 | fold acc 0.843 | 14.3s
+fold 0 | epoch 26/30 | loss 0.6037 | 12.6s
+fold 0 | epoch 27/30 | loss 0.6160 | 12.6s
+fold 0 | epoch 28/30 | loss 0.5947 | 12.7s
+fold 0 | epoch 29/30 | loss 0.6068 | 12.7s
+fold 0 | epoch 30/30 | loss 0.5988 | fold acc 0.849 | 14.5s
+fold 0 accuracy: 0.8491
+fold 1 | epoch  1/30 | loss 2.0980 | 13.1s
+fold 1 | epoch  2/30 | loss 1.5025 | 13.1s
+fold 1 | epoch  3/30 | loss 1.4916 | 13.1s
+fold 1 | epoch  4/30 | loss 1.3175 | 13.1s
+fold 1 | epoch  5/30 | loss 1.2863 | fold acc 0.833 | 22.7s
+fold 1 | epoch  6/30 | loss 1.2115 | 12.7s
+fold 1 | epoch  7/30 | loss 1.1120 | 12.8s
+fold 1 | epoch  8/30 | loss 1.0610 | 13.0s
+fold 1 | epoch  9/30 | loss 1.0230 | 13.3s
+fold 1 | epoch 10/30 | loss 0.9382 | fold acc 0.893 | 14.9s
+fold 1 | epoch 11/30 | loss 0.9678 | 13.4s
+fold 1 | epoch 12/30 | loss 0.8449 | 13.5s
+fold 1 | epoch 13/30 | loss 0.8089 | 13.4s
+fold 1 | epoch 14/30 | loss 0.7781 | 13.4s
+fold 1 | epoch 15/30 | loss 0.8047 | fold acc 0.873 | 15.2s
+fold 1 | epoch 16/30 | loss 0.7048 | 13.5s
+fold 1 | epoch 17/30 | loss 0.7337 | 13.5s
+fold 1 | epoch 18/30 | loss 0.7249 | 13.5s
+fold 1 | epoch 19/30 | loss 0.6714 | 13.4s
+fold 1 | epoch 20/30 | loss 0.6484 | fold acc 0.933 | 15.2s
+fold 1 | epoch 21/30 | loss 0.6348 | 13.4s
+fold 1 | epoch 22/30 | loss 0.6463 | 13.4s
+fold 1 | epoch 23/30 | loss 0.6243 | 13.4s
+fold 1 | epoch 24/30 | loss 0.6164 | 13.3s
+fold 1 | epoch 25/30 | loss 0.6141 | fold acc 0.933 | 15.0s
+fold 1 | epoch 26/30 | loss 0.6089 | 13.3s
+fold 1 | epoch 27/30 | loss 0.6171 | 13.3s
+fold 1 | epoch 28/30 | loss 0.6143 | 13.3s
+fold 1 | epoch 29/30 | loss 0.6042 | 13.3s
+fold 1 | epoch 30/30 | loss 0.6052 | fold acc 0.940 | 15.0s
+fold 1 accuracy: 0.9400
+fold 2 | epoch  1/30 | loss 2.2226 | 13.0s
+fold 2 | epoch  2/30 | loss 1.6290 | 13.0s
+fold 2 | epoch  3/30 | loss 1.4830 | 12.9s
+fold 2 | epoch  4/30 | loss 1.3185 | 13.0s
+fold 2 | epoch  5/30 | loss 1.1705 | fold acc 0.892 | 20.8s
+fold 2 | epoch  6/30 | loss 1.0926 | 12.6s
+fold 2 | epoch  7/30 | loss 1.0622 | 12.6s
+fold 2 | epoch  8/30 | loss 1.0368 | 12.7s
+fold 2 | epoch  9/30 | loss 0.9451 | 12.8s
+fold 2 | epoch 10/30 | loss 0.8924 | fold acc 0.899 | 14.3s
+fold 2 | epoch 11/30 | loss 0.8957 | 12.8s
+fold 2 | epoch 12/30 | loss 0.8787 | 12.9s
+fold 2 | epoch 13/30 | loss 0.8238 | 12.9s
+fold 2 | epoch 14/30 | loss 0.7802 | 12.9s
+fold 2 | epoch 15/30 | loss 0.7658 | fold acc 0.885 | 14.5s
+fold 2 | epoch 16/30 | loss 0.7070 | 12.9s
+fold 2 | epoch 17/30 | loss 0.7064 | 12.9s
+fold 2 | epoch 18/30 | loss 0.6895 | 12.9s
+fold 2 | epoch 19/30 | loss 0.6667 | 12.9s
+fold 2 | epoch 20/30 | loss 0.6448 | fold acc 0.885 | 14.5s
+fold 2 | epoch 21/30 | loss 0.6234 | 12.9s
+fold 2 | epoch 22/30 | loss 0.6446 | 12.9s
+fold 2 | epoch 23/30 | loss 0.6271 | 12.9s
+fold 2 | epoch 24/30 | loss 0.6230 | 12.9s
+fold 2 | epoch 25/30 | loss 0.6283 | fold acc 0.872 | 14.5s
+fold 2 | epoch 26/30 | loss 0.5976 | 12.9s
+fold 2 | epoch 27/30 | loss 0.6028 | 12.9s
+fold 2 | epoch 28/30 | loss 0.5971 | 12.9s
+fold 2 | epoch 29/30 | loss 0.6066 | 12.9s
+fold 2 | epoch 30/30 | loss 0.6228 | fold acc 0.885 | 14.5s
+fold 2 accuracy: 0.8851
+fold 3 | epoch  1/30 | loss 2.1595 | 12.8s
+fold 3 | epoch  2/30 | loss 1.4715 | 12.8s
+fold 3 | epoch  3/30 | loss 1.4235 | 12.8s
+fold 3 | epoch  4/30 | loss 1.2635 | 12.8s
+fold 3 | epoch  5/30 | loss 1.1730 | fold acc 0.791 | 22.9s
+fold 3 | epoch  6/30 | loss 1.1341 | 12.7s
+fold 3 | epoch  7/30 | loss 1.1442 | 12.7s
+fold 3 | epoch  8/30 | loss 0.9903 | 12.7s
+fold 3 | epoch  9/30 | loss 1.0215 | 12.7s
+fold 3 | epoch 10/30 | loss 0.9143 | fold acc 0.817 | 14.6s
+fold 3 | epoch 11/30 | loss 0.8930 | 12.9s
+fold 3 | epoch 12/30 | loss 0.8383 | 12.9s
+fold 3 | epoch 13/30 | loss 0.8456 | 13.0s
+fold 3 | epoch 14/30 | loss 0.7845 | 12.9s
+fold 3 | epoch 15/30 | loss 0.7458 | fold acc 0.869 | 14.6s
+fold 3 | epoch 16/30 | loss 0.7331 | 13.0s
+fold 3 | epoch 17/30 | loss 0.7130 | 12.9s
+fold 3 | epoch 18/30 | loss 0.6840 | 12.9s
+fold 3 | epoch 19/30 | loss 0.6583 | 12.9s
+fold 3 | epoch 20/30 | loss 0.6598 | fold acc 0.869 | 14.6s
+fold 3 | epoch 21/30 | loss 0.6415 | 12.9s
+fold 3 | epoch 22/30 | loss 0.6328 | 12.9s
+fold 3 | epoch 23/30 | loss 0.6197 | 12.8s
+fold 3 | epoch 24/30 | loss 0.6361 | 12.8s
+fold 3 | epoch 25/30 | loss 0.6062 | fold acc 0.889 | 14.5s
+fold 3 | epoch 26/30 | loss 0.6079 | 12.8s
+fold 3 | epoch 27/30 | loss 0.5997 | 12.8s
+fold 3 | epoch 28/30 | loss 0.6241 | 12.8s
+fold 3 | epoch 29/30 | loss 0.6023 | 12.8s
+fold 3 | epoch 30/30 | loss 0.5980 | fold acc 0.902 | 14.5s
+fold 3 accuracy: 0.9020
+fold 4 | epoch  1/30 | loss 2.1241 | 12.8s
+fold 4 | epoch  2/30 | loss 1.5592 | 12.9s
+fold 4 | epoch  3/30 | loss 1.4158 | 12.9s
+fold 4 | epoch  4/30 | loss 1.4057 | 12.8s
+fold 4 | epoch  5/30 | loss 1.2936 | fold acc 0.901 | 22.2s
+fold 4 | epoch  6/30 | loss 1.1331 | 12.7s
+fold 4 | epoch  7/30 | loss 1.0824 | 12.7s
+fold 4 | epoch  8/30 | loss 1.0411 | 12.7s
+fold 4 | epoch  9/30 | loss 0.9222 | 12.7s
+fold 4 | epoch 10/30 | loss 0.9428 | fold acc 0.934 | 14.3s
+fold 4 | epoch 11/30 | loss 0.8733 | 12.8s
+fold 4 | epoch 12/30 | loss 0.8593 | 12.8s
+fold 4 | epoch 13/30 | loss 0.8228 | 12.7s
+fold 4 | epoch 14/30 | loss 0.8058 | 12.8s
+fold 4 | epoch 15/30 | loss 0.7247 | fold acc 0.901 | 14.4s
+fold 4 | epoch 16/30 | loss 0.7162 | 12.8s
+fold 4 | epoch 17/30 | loss 0.6743 | 12.8s
+fold 4 | epoch 18/30 | loss 0.6961 | 12.8s
+fold 4 | epoch 19/30 | loss 0.6842 | 12.9s
+fold 4 | epoch 20/30 | loss 0.6522 | fold acc 0.908 | 14.6s
+fold 4 | epoch 21/30 | loss 0.6450 | 12.8s
+fold 4 | epoch 22/30 | loss 0.6312 | 12.8s
+fold 4 | epoch 23/30 | loss 0.6207 | 12.8s
+fold 4 | epoch 24/30 | loss 0.6130 | 12.8s
+fold 4 | epoch 25/30 | loss 0.6102 | fold acc 0.928 | 14.5s
+fold 4 | epoch 26/30 | loss 0.6122 | 12.8s
+fold 4 | epoch 27/30 | loss 0.6132 | 12.8s
+fold 4 | epoch 28/30 | loss 0.6090 | 12.9s
+fold 4 | epoch 29/30 | loss 0.5955 | 12.9s
+fold 4 | epoch 30/30 | loss 0.5943 | fold acc 0.921 | 14.4s
+fold 4 accuracy: 0.9211
+
+================ OUT-OF-FOLD RESULTS ================
+accuracy           0.8990  (per fold 0.8994 +/- 0.0349)
+balanced accuracy  0.8867
+macro F1           0.8886
+macro AUC (OvR)    0.9502
+malignant sens/spec 0.8873 / 0.9570  AUC 0.9737
+confusion matrix (rows=true, cols=pred): ['benign', 'malignant', 'normal']
+[[392  20  15]
+ [ 22 181   1]
+ [ 15   4 112]]
+saved to C:\Users\hp\OneDrive\Desktop\ML\gen ai\ultrasound_disease_classifier\runs\final_L0_s2026

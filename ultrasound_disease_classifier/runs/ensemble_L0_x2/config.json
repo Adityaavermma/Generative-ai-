@@ -1,0 +1,11 @@
+{
+  "name": "ensemble_L0_x2",
+  "members": [
+    "final_L0",
+    "final_L0_s2026"
+  ],
+  "level": "L0+L0",
+  "arch": "convnextv2_tiny.fcmae_ft_in22k_in1k_384",
+  "img_size": 384,
+  "seg_weight": 1.0
+}

@@ -7,6 +7,7 @@ app.py - Streamlit UI for the breast-ultrasound classifier.
 Research / educational use only - not a medical device and not a diagnosis.
 """
 
+import dataclasses
 import io
 import json
 import os
@@ -21,6 +22,8 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from common import CLASSES  # noqa: E402
+from enhancement_compare import (CLASSIFIER_EVIDENCE, CRITERIA, FAMILY_AGENT,  # noqa: E402
+                                 FAMILY_DENOISE, FAMILY_ENHANCE, run_all, score)
 from inference import Analysis, Predictor, heat_overlay, summary_panel  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
@@ -83,6 +86,10 @@ st.html("""
   .st-key-how_row > * { flex: 1 1 220px !important; min-width: 200px; }
   .st-key-input_row > *:has(.st-key-upload_box) { flex: 1.4 1 320px !important; min-width: 280px; }
   .st-key-input_row > *:has(.st-key-sample_box) { flex: 1 1 400px !important; min-width: 280px; }
+  .st-key-cmp_win_row > *:has(.st-key-cmp_win_imgs) { flex: 1.4 1 360px !important; min-width: 280px; }
+  .st-key-cmp_win_row > *:has(.st-key-cmp_win_card) { flex: 1 1 280px !important; min-width: 260px; }
+  .st-key-cmp_chart_row > * { flex: 1 1 380px !important; min-width: 280px; }
+  .st-key-cmp_win_metrics > *, .st-key-cmp_evidence > * { flex: 1 1 120px !important; min-width: 110px; }
   @media (max-width: 640px) { .step-arrow { display: none; } }
 </style>
 """)
@@ -103,11 +110,24 @@ def get_predictor() -> Predictor:
 
 
 @st.cache_data(show_spinner=False, max_entries=200)
-def run_analysis(data: bytes):
+def _analyze_cached(data: bytes):
+    # Cache plain data, not the Analysis object: when Streamlit hot-reloads a
+    # module, an object of the old class can no longer be pickled.
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
     if img is None:
         return None, None
-    return img, get_predictor().analyze(img)
+    return img, dataclasses.asdict(get_predictor().analyze(img))
+
+
+def run_analysis(data: bytes):
+    img, fields = _analyze_cached(data)
+    return (img, Analysis(**fields)) if fields is not None else (None, None)
+
+
+@st.cache_data(show_spinner=False, max_entries=20)
+def run_comparison(data: bytes):
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
+    return run_all(img)
 
 
 @st.cache_data
@@ -125,7 +145,10 @@ def load_runs():
         level = cfg["level"]
         inp = {0: "Raw", 2: "Denoised", 4: "Denoised + enhanced"}.get(level, f"{level}")
         if "members" in cfg:
-            inp = "Ensemble of both views"
+            inp = ("Raw, 2-seed ensemble" if set(str(cfg["level"]).split("+")) == {"L0"}
+                   else "Ensemble of both views")
+        elif cfg.get("seed", 42) != 42:
+            inp += f" (seed {cfg['seed']})"
         extra = " + lesion loss" if cfg.get("seg_weight", 0) > 0 else ""
         rows.append({
             "run": cfg["name"], "input": inp,
@@ -134,7 +157,7 @@ def load_runs():
             "accuracy": m["accuracy"], "fold_sd": m["fold_accuracy_std"],
             "balanced_accuracy": m["balanced_accuracy"], "macro_auc": m["macro_auc_ovr"],
             "mal_sens": m["malignant_sensitivity"], "mal_spec": m["malignant_specificity"],
-            "final": "members" in cfg,
+            "final": cfg["name"] == "ensemble_L4_L2",   # the deployed model
         })
     return pd.DataFrame(rows).sort_values("accuracy", ascending=False)
 
@@ -143,40 +166,44 @@ def load_runs():
 # Charts
 # --------------------------------------------------------------------------
 
+# Charts are rendered with theme="streamlit": axes, legends, text, fonts and
+# the categorical palette (chartCategoricalColors in .streamlit/config.toml)
+# follow the live light/dark theme in the browser. Only theme-independent
+# colours are hard-coded here.
+PRIMARY = "#2a78d6"
+MUTED = "#8f8e86"      # mid-gray: >= 3:1 against both the light and dark surface
+FAMILY_ORDER = [FAMILY_DENOISE, FAMILY_ENHANCE, FAMILY_AGENT]   # palette slots 1-3
+
+
+def _axis(**kw):
+    kw.setdefault("labelOverlap", False)   # never silently drop category labels
+    return alt.Axis(domain=False, ticks=False, **kw)
+
+
+# Text placement rule: every piece of text is either an axis label (themed by
+# Streamlit) or white text inside a coloured mark, so it stays readable in
+# light and dark mode without the server knowing which theme is active.
+
 def probability_chart(a: Analysis):
-    p = theme()
     df = pd.DataFrame({
+        "label": [f"{CLASS_STYLE[c]['label']} · {a.probabilities[c]:.1%}" for c in CLASSES],
         "class": [CLASS_STYLE[c]["label"] for c in CLASSES],
         "probability": [a.probabilities[c] for c in CLASSES],
         # No highlighted "winner" for an out-of-scope image.
         "predicted": [c == a.prediction and a.in_distribution is not False for c in CLASSES],
     })
-    order = [CLASS_STYLE[c]["label"] for c in CLASSES]
-    base = alt.Chart(df).encode(
-        y=alt.Y("class:N", sort=order, title=None,
-                axis=alt.Axis(labelFontSize=13, labelColor=p["text"], ticks=False, domain=False)),
-    )
-    bars = base.mark_bar(cornerRadiusEnd=4, height=20).encode(
+    bars = alt.Chart(df).mark_bar(cornerRadiusEnd=4, height=20).encode(
+        y=alt.Y("label:N", sort=df.label.tolist(), title=None, axis=_axis(labelFontSize=13)),
         x=alt.X("probability:Q", scale=alt.Scale(domain=[0, 1]), title=None,
-                axis=alt.Axis(format="%", tickCount=5, grid=True, gridColor=p["grid"],
-                              labelColor=p["text2"], domain=False, ticks=False)),
-        color=alt.condition("datum.predicted", alt.value(p["primary"]), alt.value(p["muted"])),
+                axis=_axis(format="%", tickCount=5, grid=True)),
+        color=alt.condition("datum.predicted", alt.value(PRIMARY), alt.value(MUTED)),
         tooltip=[alt.Tooltip("class:N", title="Class"),
                  alt.Tooltip("probability:Q", title="Probability", format=".1%")],
     )
-    # Long bars carry their label inside (white), short ones just past the end,
-    # so a 95% label never runs off the chart.
-    inside = base.transform_filter("datum.probability >= 0.8").mark_text(
-        align="right", dx=-6, fontSize=13, fontWeight=600).encode(
-        x="probability:Q", text=alt.Text("probability:Q", format=".1%"), color=alt.value("#ffffff"))
-    outside = base.transform_filter("datum.probability < 0.8").mark_text(
-        align="left", dx=6, fontSize=13).encode(
-        x="probability:Q", text=alt.Text("probability:Q", format=".1%"), color=alt.value(p["text"]))
-    return (bars + inside + outside).properties(height=130).configure_view(stroke=None).configure(background="transparent", font=CHART_FONT)
+    return bars.properties(height=130).configure_view(stroke=None)
 
 
 def confusion_chart(cm):
-    p = theme()
     cm = np.asarray(cm)
     labels = [CLASS_STYLE[c]["label"] for c in CLASSES]
     rows = []
@@ -186,35 +213,35 @@ def confusion_chart(cm):
                          "share": cm[i, j] / cm[i].sum()})
     df = pd.DataFrame(rows)
     df["text"] = df.apply(lambda r: f"{r['count']}\n{r['share']:.0%}", axis=1)
+    gap = alt.Scale(paddingInner=0.04)   # gaps between cells show the page surface
     base = alt.Chart(df).encode(
-        x=alt.X("pred:N", sort=labels, title="Predicted",
-                axis=alt.Axis(labelAngle=0, labelColor=p["text"], titleColor=p["text2"],
-                              ticks=False, domain=False, orient="bottom")),
-        y=alt.Y("true:N", sort=labels, title="True",
-                axis=alt.Axis(labelColor=p["text"], titleColor=p["text2"], ticks=False, domain=False)),
+        x=alt.X("pred:N", sort=labels, title="Predicted", scale=gap,
+                axis=_axis(labelAngle=0, orient="bottom")),
+        y=alt.Y("true:N", sort=labels, title="True", scale=gap, axis=_axis()),
     )
-    heat = base.mark_rect(cornerRadius=4, stroke=p["surface"], strokeWidth=3).encode(
+    heat = base.mark_rect(cornerRadius=4).encode(
         color=alt.Color("share:Q", scale=alt.Scale(domain=[0, 1], range=BLUE_RAMP), legend=None),
         tooltip=[alt.Tooltip("true:N", title="True"), alt.Tooltip("pred:N", title="Predicted"),
                  alt.Tooltip("count:Q", title="Images"),
                  alt.Tooltip("share:Q", title="Share of true class", format=".1%")],
     )
+    # Text sits on the cell colour (light cells -> dark text, dark cells -> white).
     text = base.mark_text(fontSize=14, fontWeight=600, lineBreak="\n", lineHeight=18).encode(
         text="text:N",
         color=alt.condition("datum.share > 0.5", alt.value("#ffffff"), alt.value("#0b0b0b")),
     )
-    return (heat + text).properties(height=300).configure_view(stroke=None).configure(background="transparent", font=CHART_FONT)
+    return (heat + text).properties(height=300).configure_view(stroke=None)
 
 
 def comparison_chart(df):
-    p = theme()
     df = df.copy()
     df["lo"] = df.accuracy - df.fold_sd
     df["hi"] = df.accuracy + df.fold_sd
     order = df.label.tolist()
-    # Each run's name sits above its own full-width bar, so the chart stays
-    # readable at any width (axis labels beside the bars squeezed them).
-    y = alt.Y("label:N", sort=order, title=None, axis=None, scale=alt.Scale(paddingInner=0.05))
+    # Two-line axis labels ("input" / "model") keep the label column narrow.
+    y = alt.Y("label:N", sort=order, title=None,
+              axis=_axis(labelExpr="split(datum.label, ' · ')", labelLimit=230, labelFontSize=12,
+                         labelLineHeight=15, labelPadding=8))
     x_scale = alt.Scale(domain=[0.7, 1.0])
     tooltip = [alt.Tooltip("label:N", title="Run"),
                alt.Tooltip("accuracy:Q", title="Accuracy", format=".1%"),
@@ -222,24 +249,75 @@ def comparison_chart(df):
                alt.Tooltip("balanced_accuracy:Q", title="Balanced acc.", format=".1%"),
                alt.Tooltip("macro_auc:Q", title="Macro AUC", format=".3f")]
     base = alt.Chart(df)
-    bars = base.mark_bar(cornerRadiusEnd=4, height=14, yOffset=9).encode(
+    bars = base.mark_bar(cornerRadiusEnd=4, height=20).encode(
         y=y,
-        x=alt.X("accuracy:Q", scale=x_scale, title="Out-of-fold accuracy",
-                axis=alt.Axis(format="%", tickCount=4, grid=True, gridColor=p["grid"],
-                              labelColor=p["text2"], titleColor=p["text2"], domain=False, ticks=False)),
+        x=alt.X("accuracy:Q", scale=x_scale, title="Out-of-fold accuracy (axis starts at 70%)",
+                axis=_axis(format="%", tickCount=4, grid=True)),
         x2=alt.datum(0.7),  # bars start at the axis origin (70%), not at 0
-        color=alt.condition("datum.final", alt.value(p["primary"]), alt.value(p["muted"])),
+        color=alt.condition("datum.final", alt.value(PRIMARY), alt.value(MUTED)),
         tooltip=tooltip,
     )
-    err = base.mark_rule(color=p["text2"], strokeWidth=1.5, yOffset=9).encode(
+    err = base.mark_rule(color=MUTED, strokeWidth=1.5).encode(
         y=y, x=alt.X("lo:Q", scale=x_scale), x2="hi:Q")
-    names = base.mark_text(align="left", baseline="bottom", dy=-1, fontSize=12.5, clip=True).encode(
-        y=y, x=alt.value(0), text="label:N", color=alt.value(p["text"]))
-    values = base.mark_text(align="left", dx=6, yOffset=9, fontSize=12, fontWeight=600, clip=True).encode(
-        y=y, x=alt.X("hi:Q", scale=x_scale), text=alt.Text("accuracy:Q", format=".1%"),
-        color=alt.value(p["text"]))
-    return (bars + err + names + values).properties(height=48 * len(df) + 10).configure_view(
-        stroke=None).configure(background="transparent", font=CHART_FONT)
+    values = base.mark_text(align="left", dx=6, fontSize=12, fontWeight=700, color="#ffffff").encode(
+        y=y, x=alt.datum(0.7), text=alt.Text("accuracy:Q", format=".1%"))
+    return (bars + err + values).properties(height=44 * len(df) + 30).configure_view(stroke=None)
+
+
+def _family_color():
+    # Domain only: the colours come from the theme's categorical palette, in
+    # this fixed order, so they follow light / dark mode.
+    return alt.Color("family:N", title=None, scale=alt.Scale(domain=FAMILY_ORDER),
+                     legend=alt.Legend(orient="bottom", labelFontSize=12, symbolType="circle",
+                                       symbolSize=120))
+
+
+def tradeoff_chart(df, label_keys):
+    """Speckle removed (x) vs anatomy kept (y): the ideal method is top-right.
+    The top methods are drawn larger with their rank number inside."""
+    d = df[df.key != "original"].copy()
+    tooltip = [alt.Tooltip("method:N", title="Method"), alt.Tooltip("family:N", title="Family"),
+               alt.Tooltip("score:Q", title="Score", format=".0f"),
+               alt.Tooltip("speckle_reduction:Q", title="Speckle removed", format=".0%"),
+               alt.Tooltip("anatomy_kept:Q", title="Anatomy kept", format=".2f"),
+               alt.Tooltip("tone_kept:Q", title="Tone kept", format=".2f")]
+    x_max = max(0.55, float(d.speckle_reduction.max()) + 0.05)
+    x = alt.X("speckle_reduction:Q", title="Speckle removed →", scale=alt.Scale(domain=[0, x_max]),
+              axis=_axis(format="%", grid=True))
+    y = alt.Y("anatomy_kept:Q", title="Anatomy kept →", scale=alt.Scale(domain=[0, 1.05]),
+              axis=_axis(grid=True, tickCount=5))
+    rest = alt.Chart(d[~d.key.isin(label_keys)]).mark_circle(size=110, opacity=0.85).encode(
+        x=x, y=y, color=_family_color(), tooltip=tooltip)
+    top = d[d.key.isin(label_keys)].copy()
+    top["n"] = [str(label_keys.index(k) + 1) for k in top.key]
+    top_pts = alt.Chart(top).mark_circle(size=420, opacity=1).encode(
+        x=x, y=y, color=_family_color(), tooltip=tooltip)
+    top_num = alt.Chart(top).mark_text(fontSize=12, fontWeight=700, color="#ffffff").encode(
+        x=x, y=y, text="n:N", tooltip=tooltip)
+    return (rest + top_pts + top_num).properties(height=340).configure_view(stroke=None)
+
+
+def ranking_chart(df):
+    d = df[df.key != "original"].copy()
+    order = d.method.tolist()
+    y = alt.Y("method:N", sort=order, title=None, axis=_axis(labelLimit=190))
+    bars = alt.Chart(d).mark_bar(cornerRadiusEnd=4, height=16).encode(
+        y=y, x=alt.X("score:Q", scale=alt.Scale(domain=[0, 100]), title="Score (% of the best method)",
+                     axis=_axis(grid=True, values=[0, 25, 50, 75, 100])),
+        color=_family_color(),
+        tooltip=[alt.Tooltip("method:N", title="Method"), alt.Tooltip("score:Q", title="Score", format=".0f")])
+    # Score printed inside the bar end (white); bars too short for it show the
+    # number on hover only.
+    text = alt.Chart(d[d.score >= 12]).mark_text(
+        align="right", dx=-5, fontSize=11.5, fontWeight=600, color="#ffffff").encode(
+        y=y, x="score:Q", text=alt.Text("score:Q", format=".0f"))
+    return (bars + text).properties(height=26 * len(d) + 50).configure_view(stroke=None)
+
+
+def method_noise_image(original, out):
+    """What a filter removed: mid-gray = nothing, darker/brighter = removed signal."""
+    res = original.astype(np.float32) - out.astype(np.float32)
+    return np.clip(128 + 3 * res, 0, 255).astype(np.uint8)
 
 
 def colorbar(width=256, height=10):
@@ -299,10 +377,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_analyze, tab_perf, tab_how = st.tabs([
-    ":material/search: Analyze", ":material/insights: Model performance",
-    ":material/account_tree: How it works",
-])
+# on_change="rerun" lets a tab know whether it is open (.open), so the
+# method comparison only runs when someone looks at it.
+tab_analyze, tab_compare, tab_perf, tab_how = st.tabs([
+    ":material/search: Analyze", ":material/compare: Compare methods",
+    ":material/insights: Model performance", ":material/account_tree: How it works",
+], on_change="rerun", key="main_tabs")
+current_scan = None  # (name, raw image, file bytes) of the scan shown in Analyze
 
 try:
     predictor = get_predictor()
@@ -371,7 +452,7 @@ def render_result(name: str, raw: np.ndarray, a: Analysis):
                 st.info("Low certainty: the models disagree on this scan. Treat the result "
                         "with extra caution.", icon=":material/help:")
 
-            st.altair_chart(probability_chart(a), width="stretch", theme=None)
+            st.altair_chart(probability_chart(a), width="stretch", theme="streamlit")
 
             m1 = m2 = m3 = st.container(horizontal=True, wrap=True, key="card_metrics")
             m1.metric("Models agree", f"{round(a.agreement * len(a.model_votes))}/{len(a.model_votes)}",
@@ -487,7 +568,7 @@ with tab_analyze:
                 if raw is None:
                     st.error(f"Could not read **{name}** as an image.", icon=":material/broken_image:")
                 else:
-                    results.append((name, raw, a))
+                    results.append((name, raw, a, data))
                 if progress:
                     progress.progress((i + 1) / len(sources), text=f"Analysed {i + 1}/{len(sources)}")
         if progress:
@@ -503,7 +584,7 @@ with tab_analyze:
                 "P(malignant)": a.probabilities["malignant"],
                 "Models agree": f"{round(a.agreement * len(a.model_votes))}/{len(a.model_votes)}",
                 "In scope": "yes" if a.in_distribution is not False else "NO – unreliable",
-            } for n, _, a in results])
+            } for n, _, a, _ in results])
             event = st.dataframe(
                 table, hide_index=True, width="stretch", on_select="rerun",
                 selection_mode="single-row", key="batch_table",
@@ -523,9 +604,159 @@ with tab_analyze:
             sel = 0
 
         if results:
-            name, raw, a = results[sel]
+            name, raw, a, data = results[sel]
+            current_scan = (name, raw, data)
             st.markdown(f"##### :material/image: {name}")
             render_result(name, raw, a)
+            st.caption(":material/compare: See how every denoising / enhancement method does on "
+                       "this scan in the **Compare methods** tab.")
+
+
+# --------------------------------------------------------------------------
+# Compare methods tab
+# --------------------------------------------------------------------------
+
+with tab_compare:
+    if current_scan is None:
+        st.info("Add a scan on the **Analyze** tab first (upload one or pick a sample); "
+                "every denoising / enhancement method is then compared on it here.",
+                icon=":material/arrow_back:")
+    elif tab_compare.open is False:
+        pass  # hidden: skip the ~3 s comparison until someone opens this tab
+    else:
+        scan_name, scan_raw, scan_bytes = current_scan
+        st.markdown(f"##### :material/compare: Which method works best on **{scan_name}**?")
+        st.caption("All 14 tools in `agentic_us_denoise` and the 4 agent pipelines are run on this "
+                   "scan and measured. There is no noise-free ground truth for a real scan, so the "
+                   "measures are no-reference — see *How methods are scored* below.")
+        with st.spinner("Running 18 denoising / enhancement methods…"):
+            cmp_df, cmp_images = run_comparison(scan_bytes)
+
+        crit = st.segmented_control(
+            "Rank by", list(CRITERIA), default="overall", key="cmp_criterion",
+            format_func=lambda k: CRITERIA[k])
+        crit = crit or "overall"
+        ranked = score(cmp_df, crit)
+        cands = ranked[ranked.key != "original"]
+        best, runner_up = cands.iloc[0], cands.iloc[1]
+        top_keys = cands.key.head(3).tolist()
+
+        # ---- winner -------------------------------------------------------
+        win_row = st.container(horizontal=True, wrap=True, gap="large", key="cmp_win_row")
+        with win_row.container(key="cmp_win_imgs"):
+            c1, c2 = st.columns(2)
+            c1.image(scan_raw, caption="Original", width="stretch")
+            c2.image(cmp_images[best.key], caption=f"#1 · {best.method}", width="stretch")
+        with win_row.container(border=True, key="cmp_win_card"):
+            st.html(f'<div class="hero-kicker">Winner · {CRITERIA[crit]}</div>')
+            st.html(f'<div class="pred-label" style="font-size:1.6rem">{best.method}</div>')
+            st.badge(best.family, color="blue" if best.family == FAMILY_DENOISE else
+                     ("orange" if best.family == FAMILY_ENHANCE else "green"))
+            w = st.container(horizontal=True, wrap=True, key="cmp_win_metrics")
+            w.metric("Speckle removed", f"{best.speckle_reduction:.0%}")
+            w.metric("Anatomy kept", f"{best.anatomy_kept:.2f}",
+                     help="1.00 = the filter removed only noise, no tissue structure.")
+            w.metric("Tone kept", f"{best.tone_kept:.2f}",
+                     help="1.00 = overall brightness and contrast unchanged.")
+            st.caption(f"Runner-up: **{runner_up.method}** ({runner_up.score:.0f}). "
+                       f"Pipeline: `{best.pipeline}` · {best.time_ms:.0f} ms.")
+
+        # ---- charts ---------------------------------------------------------
+        chart_row = st.container(horizontal=True, wrap=True, gap="large", key="cmp_chart_row")
+        with chart_row.container(key="cmp_tradeoff"):
+            st.markdown("**Noise removed vs anatomy kept** · ideal is top-right")
+            st.altair_chart(tradeoff_chart(ranked, top_keys), width="stretch", theme="streamlit")
+            st.caption("Numbered: the top 3 for the chosen criterion — "
+                       + " · ".join(f"**{i}** {m}" for i, m in enumerate(cands.method.head(3), 1))
+                       + ". Hover any dot for its name and scores.")
+        with chart_row.container(key="cmp_ranking"):
+            st.markdown(f"**Ranking · {CRITERIA[crit]}**")
+            st.altair_chart(ranking_chart(cands), width="stretch", theme="streamlit")
+
+        # ---- inspect one method -------------------------------------------------
+        st.markdown("##### :material/zoom_in: Inspect a method")
+        labels = dict(zip(cands.key, cands.method))
+        pick = st.selectbox("Method", list(labels), index=0, format_func=lambda k: labels[k],
+                            key="cmp_pick", label_visibility="collapsed")
+        row = ranked[ranked.key == pick].iloc[0]
+        i1, i2, i3 = st.columns(3)
+        i1.image(scan_raw, caption="Original", width="stretch")
+        i2.image(cmp_images[pick], caption=f"{row.method}", width="stretch")
+        i3.image(method_noise_image(scan_raw, cmp_images[pick]),
+                 caption="What it removed (gray = nothing)", width="stretch")
+        st.caption("Read the third image: fine random grain = speckle removed (good); visible tissue "
+                   "outlines = anatomy removed too (over-smoothing); large bright/dark patches = "
+                   "brightness or contrast changed.")
+
+        # ---- dataset-level evidence ------------------------------------------
+        with st.container(border=True):
+            st.markdown("**Best input for the AI classifier** · measured on all 762 scans, not just this one")
+            e = st.container(horizontal=True, wrap=True, key="cmp_evidence")
+            raw_acc = CLASSIFIER_EVIDENCE["Raw input"]
+            for label, acc in CLASSIFIER_EVIDENCE.items():
+                e.metric(label, f"{acc:.1%}",
+                         None if label == "Raw input" else f"{100 * (acc - raw_acc):+.1f} pts vs raw")
+            st.caption("Same ConvNeXt-Tiny model and folds, only the input changes. Adding CLAHE + "
+                       "unsharp after denoising (L4) lowered accuracy (McNemar p = 0.018); denoising "
+                       "alone (L2) gave a small gain that is not significant. With the stronger "
+                       "ConvNeXt-V2 model, raw, denoised and enhanced inputs score alike (89.2 / 88.3 / "
+                       "88.8%). Image-quality scores above and classifier accuracy are different goals "
+                       "and need not agree.")
+
+        # ---- gallery ---------------------------------------------------------------
+        with st.expander(f":material/grid_view: All {len(cands)} results, ranked", expanded=False):
+            gallery = st.container(horizontal=True, wrap=True, gap="small")
+            for r in cands.itertuples():
+                with gallery.container(width=170):
+                    st.image(cmp_images[r.key], width="stretch")
+                    st.caption(f"#{int(r.rank)} · {r.method} · **{r.score:.0f}**")
+
+        # ---- full table ---------------------------------------------------------
+        st.markdown("##### :material/table_view: All measurements")
+        table = ranked.assign(speckle_reduction=100 * ranked.speckle_reduction)[[
+            "rank", "method", "family", "score", "speckle_reduction", "anatomy_kept", "tone_kept",
+            "cnr", "edge_keep", "ssim", "snr_db", "entropy", "time_ms"]]
+        table["rank"] = ["ref" if pd.isna(r) else f"{int(r)}" for r in table["rank"]]
+        st.dataframe(table, hide_index=True, width="stretch", column_config={
+            "rank": st.column_config.TextColumn("Rank", help="ref = the original scan, for comparison"),
+            "method": "Method", "family": "Family",
+            "score": st.column_config.ProgressColumn("Score", format="%.0f", min_value=0, max_value=100),
+            "speckle_reduction": st.column_config.NumberColumn(
+                "Speckle removed", format="%.0f%%", help="Drop of the speckle index (local std / mean)."),
+            "anatomy_kept": st.column_config.NumberColumn(
+                "Anatomy kept", format="%.2f", help="1 − tissue structure found in what the filter removed."),
+            "tone_kept": st.column_config.NumberColumn(
+                "Tone kept", format="%.2f", help="1 − change of large-scale brightness / contrast."),
+            "cnr": st.column_config.NumberColumn("CNR", format="%.2f", help="Contrast-to-noise ratio."),
+            "edge_keep": st.column_config.NumberColumn(
+                "Edges preserved", format="%.2f", help="Correlation of edge maps with the input."),
+            "ssim": st.column_config.NumberColumn("SSIM to input", format="%.2f"),
+            "snr_db": st.column_config.NumberColumn("SNR (dB)", format="%.1f"),
+            "entropy": st.column_config.NumberColumn("Entropy", format="%.2f"),
+            "time_ms": st.column_config.NumberColumn("Time (ms)", format="%.0f"),
+        })
+        st.download_button(":material/download: Measurements (CSV)",
+                           ranked.drop(columns=["key"]).to_csv(index=False),
+                           file_name=f"{Path(scan_name).stem}_method_comparison.csv", mime="text/csv")
+
+        with st.expander(":material/help: How methods are scored"):
+            st.markdown(
+                "- **Speckle removed** — drop of the *speckle index* (mean of local standard deviation "
+                "÷ local mean in 5×5 windows, tissue only). Higher = smoother.\n"
+                "- **Anatomy kept** — looks at what the filter *removed* (input − output, the "
+                "\"method noise\"). If that removed part contains tissue edges, the filter destroyed "
+                "anatomy. 1.00 = only random speckle was removed.\n"
+                "- **Tone kept** — how much the large-scale brightness / contrast changed (both images "
+                "blurred, then compared). Denoisers should not repaint the scan.\n"
+                "- **Best denoising (overall)** = speckle removed^0.4 × anatomy kept^0.3 × tone kept^0.3. "
+                "A product on purpose: doing nothing (no speckle removed) and blurring everything "
+                "(anatomy lost) both score low.\n"
+                "- **Contrast (CNR)** and **Edges preserved** are offered as alternative goals: contrast "
+                "tools (CLAHE, histogram equalisation) win on contrast but *add* speckle.\n"
+                "- Scores are % of the best method **on this scan**; another scan can rank differently.\n"
+                "- Contrast-enhancing methods (CLAHE, unsharp mask, agent L3/L4) score 0 on denoising "
+                "because they increase speckle — that is their job, not a bug."
+            )
 
 
 # --------------------------------------------------------------------------
@@ -558,7 +789,7 @@ with tab_perf:
         c1, c2 = perf_row.container(key="cm_box"), perf_row.container(key="pc_box")
         with c1:
             st.markdown("##### Confusion matrix")
-            st.altair_chart(confusion_chart(ensemble["confusion_matrix"]), width="stretch", theme=None)
+            st.altair_chart(confusion_chart(ensemble["confusion_matrix"]), width="stretch", theme="streamlit")
         with c2:
             st.markdown("##### Per class")
             pc = ensemble["per_class"]
@@ -579,16 +810,18 @@ with tab_perf:
         runs = load_runs()
         if len(runs) > 1:
             st.markdown("##### What helped · all runs on the same folds")
-            st.altair_chart(comparison_chart(runs), width="stretch", theme=None)
-            st.caption("Bars: out-of-fold accuracy (axis starts at 70%); whiskers: ± fold standard "
-                       "deviation. Highlighted: the deployed ensemble.")
+            st.altair_chart(comparison_chart(runs), width="stretch", theme="streamlit")
+            st.caption("Whiskers: ± fold standard deviation. Highlighted: the deployed ensemble.")
             f1, f2, f3 = st.columns(3, border=True)
-            f1.markdown("**Denoising helps**  \nWith the same model, denoised images beat raw "
-                        "(+1.6 pts) and beat denoised + enhanced (+2.4 pts, McNemar p = 0.018).")
-            f2.markdown("**The backbone matters most**  \nConvNeXt-V2 (384 px) added ~3 points "
-                        "over ConvNeXt-Tiny on identical inputs.")
-            f3.markdown("**Two views are complementary**  \nAveraging the denoised and the "
-                        "denoised + enhanced models raised macro AUC from 0.952 to 0.966.")
+            f1.markdown("**The backbone matters most**  \nConvNeXt-V2 (384 px) added 2–3 points "
+                        "over ConvNeXt-Tiny on identical inputs (raw: 86.9 → 89.2%, McNemar p = 0.020).")
+            f2.markdown("**Preprocessing: no measurable gain**  \nWith ConvNeXt-V2, raw (89.2%), "
+                        "denoised (88.3%) and denoised + enhanced (88.8%) inputs are statistically tied "
+                        "(p ≥ 0.34). At equal size, ten raw-image models (89.9%, AUC 0.960) match "
+                        "the ten-model L2 + L4 ensemble (89.4%, AUC 0.966); neither gap is significant.")
+            f3.markdown("**Enhancement can hurt**  \nWith ConvNeXt-Tiny, adding CLAHE + unsharp after "
+                        "denoising cost 2.4 points (p = 0.018). Two seeds of the same raw model differ "
+                        "by 0.7 points, as much as the inputs differ from each other.")
 
         with st.expander(":material/verified: How the evaluation is kept honest"):
             st.markdown(

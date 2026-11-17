@@ -1,4 +1,12 @@
 # dataset + enhanced image cache (re-created by prepare_data.py)
-data/
+/data/
 # model weights (re-created by train.py); metrics/plots are kept
 runs/*/*.pt
+
+# paper draft: kept local until the paper is accepted (the evaluation scripts
+# paper/*.py and their outputs in paper/data/ are tracked)
+paper/*.tex
+paper/*.pdf
+paper/*.zip
+paper/*.cls
+paper/figures/

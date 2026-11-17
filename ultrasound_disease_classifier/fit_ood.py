@@ -31,7 +31,7 @@ import timm
 import torch
 from sklearn.covariance import LedoitWolf
 
-from modeling import eval_transform, gray_to_tensor
+from modeling import _autocast, eval_transform, gray_to_tensor
 
 ROOT = Path(__file__).resolve().parent
 EXTRACTOR = "convnext_tiny.fb_in22k_ft_in1k"
@@ -46,7 +46,7 @@ def extract(extractor, x, device, batch=32):
     out = []
     for i in range(0, len(x), batch):
         xb = x[i:i + batch].to(device)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=xb.is_cuda):
+        with _autocast(xb):
             out.append(extractor(xb).float().cpu())
     return torch.cat(out).numpy()
 
@@ -65,7 +65,7 @@ def main():
     run_dir = Path(args.run)
     cfg = json.loads((run_dir / "config.json").read_text())
     df = pd.read_csv(ROOT / "data" / "index.csv")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and torch.cuda.device_count() > 0 else "cpu")
     tf = eval_transform(cfg["img_size"])
     x = torch.stack([tf(gray_to_tensor(cv2.imread(p, cv2.IMREAD_GRAYSCALE)).expand(3, -1, -1))
                      for p in df[f"L{cfg['level']}_path"]])

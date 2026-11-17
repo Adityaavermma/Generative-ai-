@@ -55,6 +55,13 @@ def _load():
     return _AGENTS, _PT
 
 
+def load_tools():
+    """(processing_tools, metrics) modules from agentic_us_denoise."""
+    _, PT = _load()
+    import metrics  # noqa: E402  (from agentic_us_denoise, on sys.path after _load)
+    return PT, metrics
+
+
 def enhance(image: np.ndarray, level: int = 4, max_replan: int = 2):
     """Denoise + enhance a single-channel uint8 ultrasound image.
 
@@ -83,6 +90,7 @@ def enhance(image: np.ndarray, level: int = 4, max_replan: int = 2):
     info = {
         "strategy": plan["strategy"],
         "pipeline": plan["pipeline_order"],
+        "parameters": plan["parameters"],            # final (possibly re-tuned) settings
         "noise_level": report["noise_level"],
         "edge_strength": report["edge_strength"],
         "replans": attempt,

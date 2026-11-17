@@ -19,7 +19,8 @@ def describe(cfg):
     seg = " + lesion loss" if cfg.get("seg_weight", 0) > 0 else ""
     if "members" in cfg:
         return f"Ensemble {cfg['level']} · {arch} {cfg['img_size']}px{seg}"
-    return f"{LEVEL_NAMES.get(cfg['level'], cfg['level'])} · {arch} {cfg['img_size']}px{seg}"
+    seed = f" (seed {cfg['seed']})" if cfg.get("seed", 42) != 42 else ""
+    return f"{LEVEL_NAMES.get(cfg['level'], cfg['level'])}{seed} · {arch} {cfg['img_size']}px{seg}"
 
 
 def main():

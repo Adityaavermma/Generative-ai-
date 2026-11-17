@@ -1,5 +1,6 @@
 """Model + transforms shared by train.py and predict.py."""
 
+import contextlib
 import math
 
 import timm
@@ -107,7 +108,11 @@ def gray_to_tensor(img):
 
 
 def _autocast(x):
-    return torch.autocast("cuda", dtype=torch.bfloat16, enabled=x.is_cuda)
+    # On CPU skip autocast entirely: torch.autocast("cuda", enabled=False) still
+    # queries the GPU and crashes when no CUDA device is visible.
+    if not x.is_cuda:
+        return contextlib.nullcontext()
+    return torch.autocast("cuda", dtype=torch.bfloat16)
 
 
 @torch.no_grad()

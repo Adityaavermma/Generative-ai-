@@ -39,7 +39,7 @@ from sklearn.metrics import (accuracy_score, balanced_accuracy_score, classifica
 from timm.optim import create_optimizer_v2
 
 from common import CLASSES
-from modeling import build_model, eval_transform, gpu_augment, gray_to_tensor, predict_proba
+from modeling import _autocast, build_model, eval_transform, gpu_augment, gray_to_tensor, predict_proba
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -91,6 +91,16 @@ def train_fold(k, df, data, args, device, run_dir):
     steps_per_epoch = len(tr) // args.batch_size
     order = torch.Generator().manual_seed(args.seed + k)
 
+    ckpt = run_dir / f"fold{k}.pt"
+    if args.resume and ckpt.exists():
+        # Fold already trained in an interrupted run: reuse its saved weights.
+        model = build_model(args.arch, pretrained=False, drop_path=args.drop_path)
+        model.load_state_dict(torch.load(ckpt, map_location="cpu"))
+        model = model.to(device).to(memory_format=torch.channels_last)
+        print(f"fold {k}: resumed from {ckpt.name}; predictions recomputed from the saved weights",
+              flush=True)
+        return _fold_predictions(df, te, k, evaluate(model, x_eval)), []
+
     model = build_model(args.arch, pretrained=True, drop_path=args.drop_path)
     model = model.to(device).to(memory_format=torch.channels_last)
 
@@ -114,7 +124,7 @@ def train_fold(k, df, data, args, device, run_dir):
             x, mb = gpu_augment(data["train"][idx], data["mask"][idx], args.img_size)
             x = x.contiguous(memory_format=torch.channels_last)
             yb = y_dev[idx]
-            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+            with _autocast(x):
                 if args.seg_weight > 0:
                     logits, seg = model(x, with_seg=True)
                     loss = (criterion(logits.float(), yb)
@@ -142,12 +152,16 @@ def train_fold(k, df, data, args, device, run_dir):
     probs = evaluate(model, x_eval)
     del x_eval
     state = {kk: v.half() if v.is_floating_point() else v for kk, v in model.state_dict().items()}
-    torch.save(state, run_dir / f"fold{k}.pt")
+    torch.save(state, ckpt)
+    return _fold_predictions(df, te, k, probs), history
+
+
+def _fold_predictions(df, te, k, probs):
     oof = pd.DataFrame({"id": df.id.values[te], "fold": k, "label": df.label.values[te]})
     for c, name in enumerate(CLASSES):
         oof[f"p_{name}"] = probs[:, c]
     oof["pred"] = [CLASSES[i] for i in probs.argmax(1)]
-    return oof, history
+    return oof
 
 
 # --------------------------------------------------------------------------
@@ -245,6 +259,8 @@ def plot_history(hist, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--level", type=int, default=4, help="enhancement level (0 = raw)")
+    ap.add_argument("--view", default=None,
+                    help="train on an extra single-filter view instead of a level, e.g. nlm")
     ap.add_argument("--arch", default="convnext_tiny.fb_in22k_ft_in1k")
     ap.add_argument("--img-size", type=int, default=256)
     ap.add_argument("--epochs", type=int, default=30)
@@ -259,9 +275,11 @@ def main():
     ap.add_argument("--eval-every", type=int, default=5)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--name", default=None, help="run folder name (default: L<level>_<arch>)")
+    ap.add_argument("--resume", action="store_true",
+                    help="reuse fold*.pt of an interrupted run instead of retraining those folds")
     args = ap.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and torch.cuda.device_count() > 0 else "cpu")
     if device.type != "cuda":
         print("WARNING: CUDA not available - training on CPU will be slow.")
     # cudnn.benchmark re-tunes every new input shape (each fold's eval batches
@@ -269,9 +287,10 @@ def main():
     torch.backends.cudnn.benchmark = False
 
     df = pd.read_csv(INDEX_CSV)
-    col = f"L{args.level}_path"
+    col = f"{args.view.upper()}_path" if args.view else f"L{args.level}_path"
     if col not in df:
-        raise SystemExit(f"Level {args.level} not prepared. Run: python prepare_data.py --levels {args.level}")
+        hint = f"--views {args.view}" if args.view else f"--levels {args.level}"
+        raise SystemExit(f"{col} not prepared. Run: python prepare_data.py {hint}")
     images = torch.stack([gray_to_tensor(cv2.imread(p, cv2.IMREAD_GRAYSCALE)) for p in df[col]])
     masks = torch.stack([gray_to_tensor((cv2.imread(p, cv2.IMREAD_GRAYSCALE) > 127).astype(np.uint8))
                          for p in df.mask_path])
@@ -285,7 +304,8 @@ def main():
         "eval": eval_transform(args.img_size)(images.expand(-1, 3, -1, -1)),
     }
 
-    name = args.name or f"L{args.level}_{args.arch.split('.')[0]}"
+    prefix = args.view.upper() if args.view else f"L{args.level}"
+    name = args.name or f"{prefix}_{args.arch.split('.')[0]}"
     run_dir = ROOT / "runs" / name
     run_dir.mkdir(parents=True, exist_ok=True)
     config = vars(args) | {"classes": CLASSES, "name": name}
@@ -309,7 +329,8 @@ def main():
     (run_dir / "metrics.json").write_text(json.dumps(m, indent=2))
     plot_confusion(m["confusion_matrix"], run_dir / "confusion_matrix.png",
                    f"Out-of-fold confusion matrix - L{args.level} (n={m['n_images']})")
-    plot_history(hist, run_dir / "training_curves.png")
+    if hist:  # empty when every fold was resumed from saved weights
+        plot_history(hist, run_dir / "training_curves.png")
 
     print("\n================ OUT-OF-FOLD RESULTS ================")
     print(f"accuracy           {m['accuracy']:.4f}  (per fold {m['fold_accuracy_mean']:.4f} +/- {m['fold_accuracy_std']:.4f})")

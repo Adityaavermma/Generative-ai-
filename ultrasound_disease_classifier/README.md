@@ -51,7 +51,10 @@ models that never saw it or any copy of it.
 
 | Run | Input · model | Accuracy (fold ± sd) | Balanced acc | Macro AUC | Malignant sens / spec |
 |---|---|---|---|---|---|
-| `ensemble_L4_L2` | L4 + L2 · ConvNeXt-V2-Tiny 384px + lesion loss | **89.4%** (±3.7) | 88.3% | **0.966** | 87.3% / 94.8% |
+| `ensemble_L0_x2` | L0 raw, 2 seeds × 5 folds · ConvNeXt-V2-Tiny 384px + lesion loss | **89.9%** (±3.8) | 87.8% | 0.960 | 89.7% / 94.8% |
+| `final_L0_s2026` | L0 raw (seed 2026) · ConvNeXt-V2-Tiny 384px + lesion loss | **89.9%** (±3.5) | **88.7%** | 0.950 | 88.7% / 95.7% |
+| `ensemble_L4_L2` | L4 + L2 · ConvNeXt-V2-Tiny 384px + lesion loss (deployed) | 89.4% (±3.7) | 88.3% | **0.966** | 87.3% / 94.8% |
+| `final_L0` | L0 raw · ConvNeXt-V2-Tiny 384px + lesion loss | 89.2% (±2.6) | 86.8% | 0.959 | 89.2% / 94.3% |
 | `final_L4` | L4 denoised + enhanced · ConvNeXt-V2-Tiny 384px + lesion loss | 88.8% (±4.9) | 86.7% | 0.952 | 86.3% / 95.3% |
 | `final_L2` | L2 denoised · ConvNeXt-V2-Tiny 384px + lesion loss | 88.3% (±3.4) | 86.8% | 0.949 | 84.3% / 95.0% |
 | `cmp_L2_256` | L2 denoised · ConvNeXt-Tiny 256px | 88.5% (±2.4) | 86.1% | 0.943 | 89.2% / 93.7% |
@@ -61,15 +64,23 @@ models that never saw it or any copy of it.
 
 Findings:
 
-* **Denoising helps; extra contrast enhancement does not, on its own.** With
-  the same ConvNeXt-Tiny model, denoised L2 images beat L4 (denoise + CLAHE +
-  unsharp) by 2.4 points (McNemar p = 0.018) and raw images by 1.6 points
-  (p = 0.09, borderline). With the stronger backbone L2 and L4 are tied
-  (88.3% vs 88.8%, p = 0.68).
 * **The backbone mattered most:** ConvNeXt-V2 (FCMAE pre-training, 384 px)
-  gave +3 points over ConvNeXt-Tiny on identical L4 inputs.
-* **The two views are complementary:** averaging the L2 and L4 models raises
-  macro AUC from 0.952 to 0.966 and accuracy to 89.4%.
+  gave 2–3 points over ConvNeXt-Tiny on identical inputs (raw images:
+  86.9% → 89.2%, McNemar p = 0.020).
+* **With ConvNeXt-V2 the preprocessing gave no measurable gain.** Raw
+  (89.2%), denoised L2 (88.3%, p = 0.34 vs raw) and denoised + enhanced L4
+  (88.8%, p = 0.78) inputs are statistically tied, and the raw model has the
+  best single-view macro AUC (0.959) and malignant sensitivity (89.2%).
+* **Contrast enhancement after denoising can hurt.** With the weaker
+  ConvNeXt-Tiny, L2 beat L4 (denoise + CLAHE + unsharp) by 2.4 points
+  (p = 0.018); L2 vs raw (+1.6 points, p = 0.09) is not significant.
+* **At equal ensemble size the raw images are just as good.** Ten raw-image
+  models (two seeds × five folds) reach 89.9% accuracy and macro AUC 0.960,
+  vs 89.4% and 0.966 for the ten L2 + L4 models (accuracy p = 0.59; AUC
+  difference 0.006, 95% bootstrap CI −0.003 to 0.017). The raw ensemble has
+  the higher malignant sensitivity (89.7% vs 87.3%) at the same specificity.
+  The two raw seeds differ by 0.7 points (89.2% vs 89.9%), as much as the
+  inputs differ from each other.
 * Higher resolution + lesion-mask loss alone (ConvNeXt-Tiny) did not change
   accuracy, but the lesion head gives the heat-map at prediction time, so it
   was kept.
@@ -139,6 +150,9 @@ scan or moving the heat-map slider is instant.
 
   Several files give a sortable batch table (with CSV export); click a row to
   inspect that scan.
+* **Compare methods**: runs all 14 denoising / enhancement tools of
+  `agentic_us_denoise` plus the 4 agent pipelines on the current scan and
+  shows which works best (see below).
 * **Model performance**: out-of-fold metrics, interactive confusion matrix,
   per-class table, and the comparison of all training runs.
 * **How it works**: pipeline diagram, method, data and limitations.
@@ -149,6 +163,42 @@ Non-breast images get an **"Out of scope"** headline instead of a diagnosis:
 
 The UI follows the system light/dark setting (theme in `.streamlit/config.toml`)
 and works down to phone width.
+
+### Which denoising / enhancement method is best?
+
+![Compare methods tab](docs/ui_compare_methods.jpg)
+
+The **Compare methods** tab (or `python enhancement_compare.py scan.png`) runs
+every method on the scan: mean, median, Gaussian, bilateral, adaptive Wiener,
+non-local means, SRAD, wavelet shrinkage, curvelet-style filter, soft
+thresholding, CLAHE, unsharp mask, gamma correction, histogram equalisation,
+and agent pipelines L1–L4. It shows the winner, a *noise removed vs anatomy
+kept* scatter, a ranking, an inspector that shows **what each filter removed**,
+and a full metrics table.
+
+A real scan has no noise-free ground truth, so the measures are no-reference:
+
+| Measure | Meaning |
+|---|---|
+| Speckle removed | drop of the speckle index (local std ÷ local mean, 5×5) |
+| Anatomy kept | 1 − tissue structure found in what the filter **removed** ("method noise"); 1.00 = only random speckle removed |
+| Tone kept | 1 − change in large-scale brightness / contrast; denoisers should not repaint the scan |
+| CNR, edges preserved, SSIM, SNR, entropy | shown for reference; CNR and edges can be chosen as the ranking goal |
+
+**Best denoising (overall)** = speckle removed^0.4 × anatomy kept^0.3 × tone
+kept^0.3, a product so that doing nothing *and* blurring everything both score
+low. On the five BUSI scans tried, **non-local means ranked first every time**
+(on the three measured in detail it removed 36–46 % of the speckle with almost
+no anatomy in the removed part); the contrast tools
+(CLAHE, unsharp mask, agent L3/L4) score 0 as denoisers because they *add*
+speckle. Note the agents' own plan uses Gaussian (or SRAD for very noisy
+scans), not non-local means.
+
+Image quality and classifier accuracy are different goals: over all 762 scans
+the same ConvNeXt-Tiny model scored 88.5 % on agent **L2 (denoised)** images,
+86.9 % on raw and 86.1 % on L4 (L2 vs L4 significant, L2 vs raw not); with
+ConvNeXt-V2 the three inputs are tied (88.3 / 89.2 / 88.8 %). The tab shows
+this too.
 
 ## Command line
 
@@ -188,6 +238,7 @@ python compare_runs.py                        # table + runs/comparison.png
 | File | Purpose |
 |---|---|
 | `us_pipeline.py` | Calls the agentic denoise/enhance workflow (analyse → plan → process → evaluate → re-plan) |
+| `enhancement_compare.py` | Runs and scores all 18 denoising / enhancement methods on one scan (UI tab + CLI) |
 | `prepare_data.py` | Duplicate detection, folds, lesion-mask cache, enhancement cache |
 | `modeling.py` | ConvNeXt backbone + class head + lesion head; GPU augmentation |
 | `train.py` | 5-fold training, out-of-fold metrics, confusion matrix, curves |
